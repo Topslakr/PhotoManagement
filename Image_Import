@@ -1,0 +1,40 @@
+#!/bin/bash
+
+# Function to get the formatted date
+get_formatted_date() {
+    local file_date=$(stat -f "%Sm" -t "%Y-%m-%d" "$1")
+    local year=$(echo "$file_date" | cut -d '-' -f 1)
+    local month=$(echo "$file_date" | cut -d '-' -f 2)
+    local day=$(echo "$file_date" | cut -d '-' -f 3)
+    local month_name=$(date -jf "%Y-%m-%d" "$file_date" +"%B")
+
+    echo "$year/$month - $month_name/$day"
+}
+
+# Set the SD card mount point
+sd_card_mount_point="/Volumes/OM SYSTEM"
+
+# Find all images on the SD card within sub-folders, including Olympus RAW images
+images=$(find "$sd_card_mount_point" -type f \( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.mov" -o -iname "*.orf" \))
+
+# Process each image
+while read -r image; do
+    # Get the formatted date for the image
+    formatted_date=$(get_formatted_date "$image")
+
+    # Check for and/or create the required folder structure
+    destination_folder="/Volumes/Image_Database/$formatted_date"
+    mkdir -p "$destination_folder"
+
+    # Get the image filename
+    image_filename=$(basename "$image")
+
+    # Check if the file already exists in the destination folder
+    if [[ ! -e "$destination_folder/$image_filename" ]]; then
+        # Copy the image to the correct, dated folderi
+	echo Copying "$image" to "$destination_folder"
+        cp -v "$image" "$destination_folder"
+    else
+        echo "Skipping $image_filename"
+    fi
+done <<< "$images"
